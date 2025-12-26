@@ -14,7 +14,7 @@ This repository is the single source of truth for the **Subscription Management 
 
 **The Problem:** Consumers are overwhelmed by the number of subscriptions they manage. They lose track of payments, forget to cancel free trials, and waste money on services they no longer use.
 
-**Our Solution:** A dedicated "control cockpit" that provides complete visibility, proactive intelligence (like automated trial detection from email), and effortless control over all recurring expenses.
+**Our Solution:** A dedicated "control cockpit" that provides complete visibility, proactive intelligence (like automated trial detection from email and instant import from bank statements), and effortless control over all recurring expenses.
 
 **Primary Tagline:** *Your Subscriptions, Under Control.*
 
@@ -47,13 +47,14 @@ This documentation is organized into several categories to serve different needs
 | [System Architecture](SYSTEM_ARCHITECTURE.md) | High-level architecture, component breakdown, technology stack, and design rationale. |
 | [Data Model & Schema](DATA_MODEL_SCHEMA.md) | Complete database schema, table definitions, RLS policies, and migration strategy. |
 | [API Specification](API_SPECIFICATION.md) | RESTful API endpoints, request/response formats, authentication, and error handling. |
-| [AI Development & Self-Maintenance Guide](AI_DEVELOPMENT_AND_SELF_MAINTENANCE_GUIDE.md) | **NEW:** The 100% AI development workflow, weekly self-maintenance cycle, and change management rules. |
-| [Internationalization (i18n) Guide](INTERNATIONALIZATION_GUIDE.md) | **NEW:** How to implement and manage multi-language support (English, Spanish, and beyond). |
+| [AI Development & Self-Maintenance Guide](AI_DEVELOPMENT_AND_SELF_MAINTENANCE_GUIDE.md) | The 100% AI development workflow, weekly self-maintenance cycle, and change management rules. |
+| [Internationalization (i18n) Guide](INTERNATIONALIZATION_GUIDE.md) | How to implement and manage multi-language support (English, Spanish, and beyond). |
 
 ### For Feature Implementation
 
 | Document | Description |
 | :--- | :--- |
+| [Statement Upload & Wallet Integration Guide](STATEMENT_UPLOAD_AND_WALLET_INTEGRATION_GUIDE.md) | **NEW:** How to implement bank statement parsing and OAuth-based wallet connections (e.g., PayPal). |
 | [Email Trial Detection Guide](EMAIL_TRIAL_DETECTION.md) | How to integrate Gmail, Outlook, and iCloud for automated trial detection. |
 | [Zoho Integration Guide](ZOHO_INTEGRATION_GUIDE.md) | How to integrate with Zoho Billing, Books, CRM, and Desk. |
 | [Frontend Development Guide](FRONTEND_DEVELOPMENT_GUIDE.md) | How to build the UI using Refine and the Metronic theme. |
@@ -111,11 +112,11 @@ If you are an AI agent tasked with working on this platform, follow this recomme
 4.  **Understand Your Role:** Read the [AI Development & Self-Maintenance Guide](AI_DEVELOPMENT_AND_SELF_MAINTENANCE_GUIDE.md).
 5.  **Follow the Rules:** Adhere to the [Development SOP](DEVELOPMENT_SOP.md) for all coding tasks.
 6.  **Internationalize:** Follow the [Internationalization Guide](INTERNATIONALIZATION_GUIDE.md) for all frontend work.
-7.  **Build Features:** Use the specific implementation guides (Email, Zoho, Frontend) as needed.
+7.  **Build Features:** Use the specific implementation guides (Statement Upload, Email, Zoho, Frontend) as needed.
 8.  **Deploy & Monitor:** Follow the [Deployment Guide](DEPLOYMENT_GUIDE.md) and [Monitoring Guide](MONITORING_OBSERVABILITY.md).
 
 ---
 
 **Last Updated:** December 26, 2025  
-**Documentation Version:** 1.2  
+**Documentation Version:** 1.3  
 **Maintained by:** AI Agents via Google Antigravity
