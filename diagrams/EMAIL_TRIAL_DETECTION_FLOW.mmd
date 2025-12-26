@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant User
+    participant Frontend as Web App (Refine)
+    participant Backend as Vercel API
+    participant EmailProvider as Email Provider (Gmail/Outlook)
+    participant Supabase
+
+    User->>Frontend: 1. Clicks "Connect Email"
+    Frontend->>Backend: 2. POST /api/v1/email/connect {provider: "gmail"}
+    Backend-->>Frontend: 3. Returns {authorization_url}
+    Frontend->>User: 4. Redirects to Gmail/Outlook OAuth screen
+    User->>EmailProvider: 5. Authorizes access
+    EmailProvider->>Backend: 6. Redirects to /api/v1/email/connect/callback with auth code
+    Backend->>EmailProvider: 7. Exchanges code for access/refresh tokens
+    Backend->>Supabase: 8. Securely stores encrypted tokens in `email_accounts` table
+    Backend-->>Frontend: 9. Redirects to dashboard with success message
+
+    Note over EmailProvider, Supabase: Later, a new email arrives...
+
+    EmailProvider->>Backend: 10. Sends webhook notification (or polled by Supabase Edge Function)
+    Backend->>EmailProvider: 11. Fetches minimal email content (subject, sender, snippet)
+    Backend->>Backend: 12. Parses content to detect trial information
+    alt Trial Detected
+        Backend->>Supabase: 13. Creates a `subscription` record with status `trial_pending`
+        Supabase->>Frontend: 14. Notifies frontend via real-time subscription
+        Frontend->>User: 15. Displays "Pending Trial" for confirmation
+        User->>Frontend: 16. Clicks "Confirm Trial"
+        Frontend->>Backend: 17. POST /api/v1/trials/{id}/confirm
+        Backend->>Supabase: 18. Updates subscription status to `trial_active`
+    end

@@ -1,0 +1,47 @@
+graph TD
+    subgraph User Interfaces
+        direction LR
+        WebApp["Web App / PWA<br>(Refine + React)"]
+    end
+
+    subgraph "Vercel Platform"
+        direction TB
+        VercelFrontend["Frontend Hosting"]
+        VercelAPI["Serverless API Functions<br>(Node.js)"]
+        WebApp --> VercelFrontend
+        VercelFrontend --> VercelAPI
+    end
+
+    subgraph "Supabase Platform"
+        direction TB
+        SupabaseAuth["Auth Service"]
+        SupabaseDB["PostgreSQL Database<br>(with RLS)"]
+        SupabaseEdge["Edge Functions<br>(Deno)"]
+        SupabaseStorage["File Storage"]
+    end
+
+    subgraph "Third-Party Services"
+        direction TB
+        Zoho["Zoho Ecosystem<br>(Billing, Desk, etc.)"]
+        EmailProviders["Email Provider APIs<br>(Gmail, Graph, IMAP)"]
+        PaymentGateway["Authorize.net"]
+    end
+
+    VercelAPI --> SupabaseAuth
+    VercelAPI --> SupabaseDB
+    VercelAPI --> Zoho
+    VercelAPI --> PaymentGateway
+
+    SupabaseEdge --> EmailProviders
+    SupabaseEdge --> SupabaseDB
+
+    style WebApp fill:#D6EAF8,stroke:#3498DB
+    style VercelFrontend fill:#FDF2E9,stroke:#E67E22
+    style VercelAPI fill:#FDF2E9,stroke:#E67E22
+    style SupabaseAuth fill:#E8F8F5,stroke:#1ABC9C
+    style SupabaseDB fill:#E8F8F5,stroke:#1ABC9C
+    style SupabaseEdge fill:#E8F8F5,stroke:#1ABC9C
+    style SupabaseStorage fill:#E8F8F5,stroke:#1ABC9C
+    style Zoho fill:#FEF9E7,stroke:#F1C40F
+    style EmailProviders fill:#FEF9E7,stroke:#F1C40F
+    style PaymentGateway fill:#FEF9E7,stroke:#F1C40F

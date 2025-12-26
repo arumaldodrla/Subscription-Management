@@ -1,67 +1,62 @@
 # API Specification
 
-## 1. Introduction
+**Version:** 1.1  
+**Last Updated:** December 26, 2025
 
-This document defines the complete API specification for the Subscription Management Micro-SaaS platform. You, the AI agent, must implement all endpoints according to this specification.
+## 1. Introduction & Principles
 
-## 2. API Architecture
+This document provides the complete specification for the RESTful API of the Subscription Management Micro-SaaS platform. The API is designed to be consumed by the frontend application (Refine) and potentially by future third-party integrations. You, the AI agent, must adhere strictly to these definitions when building or interacting with the API.
 
-*   **Protocol:** RESTful API over HTTPS
-*   **Base URL:** `https://api.subscriptionmanager.com` (production)
-*   **Authentication:** JWT-based authentication using Supabase Auth
-*   **Content Type:** `application/json`
+**Key Principles:**
 
-## 3. Authentication
+*   **Protocol:** All communication is over HTTPS.
+*   **Versioning:** The API is versioned in the URL. The current version is `v1`. All endpoints are prefixed with `/api/v1`.
+*   **Authentication:** All endpoints (except health checks) are protected and require a valid JWT issued by Supabase Auth. The token must be passed in the `Authorization` header as a Bearer token.
+*   **Data Format:** All request and response bodies are in JSON format.
+*   **Error Handling:** The API uses standard HTTP status codes. Error responses include a structured JSON body with a `message` field.
 
-All API endpoints require authentication unless otherwise specified. The client must include a valid JWT token in the `Authorization` header:
+## 2. Common Structures
 
-```
-Authorization: Bearer <jwt_token>
-```
+### 2.1. Standard Error Response
 
-## 4. Error Handling
-
-All errors must follow this standard format:
+Used for `4xx` and `5xx` status codes.
 
 ```json
 {
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": {}
+  "message": "A human-readable error message.",
+  "details": "Optional: further technical details or validation errors."
+}
+```
+
+### 2.2. Pagination
+
+List endpoints will return a `pagination` object alongside the `data` array.
+
+```json
+{
+  "data": [...],
+  "pagination": {
+    "total": 100,
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
 
-Common HTTP status codes:
+## 3. Endpoints
 
-| Status Code | Description |
-|-------------|-------------|
-| 200 | Success |
-| 201 | Created |
-| 400 | Bad Request |
-| 401 | Unauthorized |
-| 403 | Forbidden |
-| 404 | Not Found |
-| 500 | Internal Server Error |
+--- 
 
-## 5. Subscription Endpoints
+### 3.1. Subscriptions (`/api/v1/subscriptions`)
 
-### 5.1. List Subscriptions
+#### `GET /api/v1/subscriptions`
 
-**Endpoint:** `GET /api/subscriptions`
-
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| workspace_id | uuid | Filter by workspace |
-| status | string | Filter by status |
-| category | string | Filter by category |
-| limit | integer | Number of results (default: 50) |
-| offset | integer | Pagination offset |
-
-**Response:**
+*   **Description:** Retrieves a paginated list of subscriptions for the user's current workspace.
+*   **Query Parameters:**
+    *   `status` (string, optional): Filter by status (e.g., `active`, `trial_active`).
+    *   `limit` (integer, optional, default: 20): Number of results per page.
+    *   `offset` (integer, optional, default: 0): Pagination offset.
+*   **Success Response (200 OK):**
 
 ```json
 {
@@ -69,90 +64,56 @@ Common HTTP status codes:
     {
       "id": "uuid",
       "name": "Netflix",
-      "category": "streaming",
       "status": "active",
       "amount": 15.99,
-      "currency": "USD",
-      "billing_period": "monthly",
-      "next_renewal_date": "2024-02-01",
-      "payment_method_id": "uuid",
-      "created_at": "2024-01-01T00:00:00Z"
+      "next_renewal_date": "2026-01-15"
     }
   ],
-  "pagination": {
-    "total": 100,
-    "limit": 50,
-    "offset": 0
-  }
+  "pagination": { "total": 1, "limit": 20, "offset": 0 }
 }
 ```
 
-### 5.2. Create Subscription
+#### `POST /api/v1/subscriptions`
 
-**Endpoint:** `POST /api/subscriptions`
-
-**Request Body:**
+*   **Description:** Creates a new subscription.
+*   **Request Body:**
 
 ```json
 {
-  "workspace_id": "uuid",
-  "name": "Netflix",
-  "category": "streaming",
-  "amount": 15.99,
-  "currency": "USD",
+  "name": "Spotify",
+  "amount": 9.99,
   "billing_period": "monthly",
-  "next_renewal_date": "2024-02-01",
-  "payment_method_id": "uuid",
-  "notes": "Family plan"
+  "next_renewal_date": "2026-01-20",
+  "payment_method_id": "uuid"
 }
 ```
 
-**Response:** `201 Created`
+*   **Success Response (201 Created):** Returns the newly created subscription object.
 
-```json
-{
-  "data": {
-    "id": "uuid",
-    "name": "Netflix",
-    ...
-  }
-}
-```
+#### `GET /api/v1/subscriptions/{id}`
 
-### 5.3. Update Subscription
+*   **Description:** Retrieves a single subscription by its ID.
+*   **Success Response (200 OK):** Returns the full subscription object.
 
-**Endpoint:** `PATCH /api/subscriptions/:id`
+#### `PATCH /api/v1/subscriptions/{id}`
 
-**Request Body:** (partial update)
+*   **Description:** Updates an existing subscription.
+*   **Request Body:** Contains a subset of the subscription fields to be updated.
+*   **Success Response (200 OK):** Returns the updated subscription object.
 
-```json
-{
-  "amount": 17.99,
-  "next_renewal_date": "2024-03-01"
-}
-```
+#### `DELETE /api/v1/subscriptions/{id}`
 
-**Response:** `200 OK`
+*   **Description:** Deletes a subscription.
+*   **Success Response (204 No Content):**
 
-### 5.4. Delete Subscription
+--- 
 
-**Endpoint:** `DELETE /api/subscriptions/:id`
+### 3.2. Payment Methods (`/api/v1/payment-methods`)
 
-**Response:** `204 No Content`
+#### `GET /api/v1/payment-methods`
 
-## 6. Payment Method Endpoints
-
-### 6.1. List Payment Methods
-
-**Endpoint:** `GET /api/payment-methods`
-
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| workspace_id | uuid | Filter by workspace |
-
-**Response:**
+*   **Description:** Retrieves all payment methods for the user's current workspace.
+*   **Success Response (200 OK):**
 
 ```json
 {
@@ -160,229 +121,89 @@ Common HTTP status codes:
     {
       "id": "uuid",
       "type": "card",
-      "nickname": "Chase Sapphire",
-      "last4": "1234",
-      "expiry_month": 12,
-      "expiry_year": 2025,
-      "issuer": "Chase"
+      "nickname": "Personal Visa",
+      "last4": "4242",
+      "expiry_year": 2028
     }
   ]
 }
 ```
 
-### 6.2. Create Payment Method
+#### `POST /api/v1/payment-methods`
 
-**Endpoint:** `POST /api/payment-methods`
+*   **Description:** Adds a new payment method.
+*   **Success Response (201 Created):** Returns the newly created payment method object.
 
-**Request Body:**
+--- 
 
-```json
-{
-  "workspace_id": "uuid",
-  "type": "card",
-  "nickname": "Chase Sapphire",
-  "last4": "1234",
-  "expiry_month": 12,
-  "expiry_year": 2025,
-  "issuer": "Chase"
-}
-```
+### 3.3. Email Integration (`/api/v1/email`)
 
-**Response:** `201 Created`
+#### `POST /api/v1/email/connect`
 
-## 7. Email Integration Endpoints
+*   **Description:** Initiates the OAuth 2.0 flow to connect a user's email account.
+*   **Request Body:** `{"provider": "gmail"}`
+*   **Success Response (200 OK):** `{"authorization_url": "https://accounts.google.com/o/oauth2/..."}`
 
-### 7.1. Connect Email Account
+#### `POST /api/v1/email/connect/callback`
 
-**Endpoint:** `POST /api/email/connect`
+*   **Description:** The callback URL that the OAuth provider redirects to. The server exchanges the authorization code for tokens.
+*   **Success Response (200 OK):** `{"message": "Email account connected successfully."}`
 
-**Request Body:**
+#### `POST /api/v1/email/webhook/gmail`
 
-```json
-{
-  "provider": "gmail",
-  "auth_code": "oauth_authorization_code"
-}
-```
+*   **Description:** A secure webhook to receive push notifications from Google Pub/Sub.
+*   **Success Response (204 No Content):**
 
-**Response:** `201 Created`
+--- 
 
-```json
-{
-  "data": {
-    "id": "uuid",
-    "provider": "gmail",
-    "email_address": "user@gmail.com",
-    "status": "active"
-  }
-}
-```
+### 3.4. Trials (`/api/v1/trials`)
 
-### 7.2. Disconnect Email Account
+#### `GET /api/v1/trials/pending`
 
-**Endpoint:** `DELETE /api/email/:id`
+*   **Description:** Retrieves all subscriptions with the status `trial_pending`.
+*   **Success Response (200 OK):** Returns an array of subscription objects.
 
-**Response:** `204 No Content`
+#### `POST /api/v1/trials/{id}/confirm`
 
-### 7.3. Email Webhook (Internal)
+*   **Description:** Confirms a pending trial, changing its status to `trial_active`.
+*   **Success Response (200 OK):** Returns the updated subscription object.
 
-**Endpoint:** `POST /api/email/webhook`
+#### `POST /api/v1/trials/{id}/dismiss`
 
-This endpoint receives notifications from email providers (Gmail Pub/Sub, Microsoft Graph).
+*   **Description:** Dismisses a pending trial, deleting the record.
+*   **Success Response (204 No Content):**
 
-**Request Body:** (varies by provider)
+--- 
 
-**Response:** `200 OK`
+### 3.5. Analytics (`/api/v1/analytics`)
 
-## 8. Trial Detection Endpoints
+#### `GET /api/v1/analytics/summary`
 
-### 8.1. List Pending Trials
-
-**Endpoint:** `GET /api/trials/pending`
-
-**Response:**
+*   **Description:** Retrieves a summary of analytics for the dashboard.
+*   **Success Response (200 OK):**
 
 ```json
 {
-  "data": [
-    {
-      "id": "uuid",
-      "name": "Canva",
-      "trial_start_date": "2024-01-01",
-      "trial_end_date": "2024-01-15",
-      "source": "email_detected",
-      "status": "trial_pending"
-    }
-  ]
+  "total_monthly_spend": 150.00,
+  "active_subscriptions_count": 12,
+  "active_trials_count": 3,
+  "upcoming_renewals_count": 5,
+  "at_risk_subscriptions_count": 2
 }
 ```
 
-### 8.2. Confirm Trial
+--- 
 
-**Endpoint:** `POST /api/trials/:id/confirm`
+### 3.6. System (`/api/v1/system`)
 
-**Request Body:**
+#### `GET /api/v1/system/health`
+
+*   **Description:** An unauthenticated endpoint to check the health of the API.
+*   **Success Response (200 OK):**
 
 ```json
 {
-  "name": "Canva Pro",
-  "trial_end_date": "2024-01-15",
-  "amount": 12.99,
-  "billing_period": "monthly"
+  "status": "healthy",
+  "timestamp": "2025-12-26T10:00:00Z"
 }
 ```
-
-**Response:** `200 OK`
-
-### 8.3. Dismiss Trial
-
-**Endpoint:** `POST /api/trials/:id/dismiss`
-
-**Response:** `200 OK`
-
-## 9. Analytics Endpoints
-
-### 9.1. Get Dashboard Summary
-
-**Endpoint:** `GET /api/analytics/dashboard`
-
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| workspace_id | uuid | Workspace ID |
-
-**Response:**
-
-```json
-{
-  "data": {
-    "total_monthly_spend": 150.00,
-    "total_annual_spend": 1800.00,
-    "active_subscriptions": 12,
-    "active_trials": 3,
-    "upcoming_renewals": [
-      {
-        "subscription_id": "uuid",
-        "name": "Netflix",
-        "renewal_date": "2024-02-01",
-        "amount": 15.99
-      }
-    ],
-    "at_risk_subscriptions": [
-      {
-        "subscription_id": "uuid",
-        "name": "Spotify",
-        "reason": "card_expiring",
-        "payment_method": {
-          "last4": "1234",
-          "expiry_month": 2,
-          "expiry_year": 2024
-        }
-      }
-    ]
-  }
-}
-```
-
-## 10. Notification Endpoints
-
-### 10.1. Get Notification Preferences
-
-**Endpoint:** `GET /api/notifications/preferences`
-
-**Response:**
-
-```json
-{
-  "data": {
-    "renewal_reminders": {
-      "enabled": true,
-      "days_before": [3, 7],
-      "channels": ["email", "push"]
-    },
-    "trial_reminders": {
-      "enabled": true,
-      "days_before": [3],
-      "channels": ["email", "push", "in-app"]
-    }
-  }
-}
-```
-
-### 10.2. Update Notification Preferences
-
-**Endpoint:** `PATCH /api/notifications/preferences`
-
-**Request Body:**
-
-```json
-{
-  "renewal_reminders": {
-    "enabled": true,
-    "days_before": [7, 14],
-    "channels": ["email"]
-  }
-}
-```
-
-**Response:** `200 OK`
-
-## 11. Rate Limiting
-
-All API endpoints are subject to rate limiting:
-
-*   **Authenticated requests:** 1000 requests per hour per user
-*   **Webhook endpoints:** 10000 requests per hour
-
-Rate limit headers are included in all responses:
-
-```
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1609459200
-```
-
-## 12. Versioning
-
-The API uses URL versioning. The current version is `v1`. Future versions will be accessible via `/api/v2/...`.

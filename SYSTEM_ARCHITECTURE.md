@@ -1,145 +1,80 @@
 # System Architecture & Technical Design
 
-## 1. High-Level Architecture
+**Version:** 1.1  
+**Last Updated:** December 26, 2025
 
-The Subscription Management Micro-SaaS platform is designed with a modern, serverless architecture to ensure scalability, security, and maintainability. The following diagram illustrates the high-level system components:
+## 1. Architectural Vision & Principles
 
-```mermaid
-graph TD
-    subgraph "User-Facing Applications"
-        A[Web App / PWA] --> B{Vercel}
-        C[Android App] --> B
-        D[macOS App] --> B
-    end
+The architecture of the Subscription Management Micro-SaaS is founded on modern, cloud-native principles to ensure **scalability, security, resilience, and maintainability**. Our goal is to create a robust, AI-driven platform that can be efficiently operated and evolved by a small team of engineers and AI agents.
 
-    subgraph "Backend Services"
-        B --> E[Serverless API Routes]
-        B --> F[Supabase]
-    end
+Key architectural principles include:
 
-    subgraph "Supabase Platform"
-        F --> G[PostgreSQL Database]
-        F --> H[Authentication]
-        F --> I[Edge Functions]
-        F --> J[Storage]
-    end
+*   **Serverless-First:** We leverage serverless computing to eliminate infrastructure management, enable automatic scaling, and optimize operational costs.
+*   **Managed Services:** We prioritize the use of managed services (e.g., Supabase, Vercel, Zoho) to reduce operational burden and focus on delivering core product value.
+*   **AI-First Operations:** The system is designed for high-touch automation, where AI agents are first-class citizens in the development, deployment, and maintenance lifecycle.
+*   **Security by Design:** Security is not an afterthought. It is integrated into every layer of the architecture, from database row-level security to API authentication and secure third-party integrations.
+*   **Modularity & Decoupling:** Components are designed to be modular and loosely coupled, enabling independent development, deployment, and scaling.
 
-    subgraph "Third-Party Integrations"
-        E --> K[Zoho Services]
-        E --> L[Authorize.net]
-        I --> M[Email Services]
-    end
+## 2. High-Level System Architecture
 
-    subgraph "Zoho Services"
-        K --> K1[Zoho Billing]
-        K --> K2[Zoho Books]
-        K --> K3[Zoho CRM]
-        K --> K4[Zoho Desk]
-    end
+The following diagram provides a high-level overview of the system's components and their interactions.
 
-    subgraph "Email Services"
-        M --> M1[Gmail API]
-        M --> M2[Microsoft Graph]
-        M --> M3[iCloud IMAP]
-    end
-```
+![Detailed System Architecture](diagrams/DETAILED_SYSTEM_ARCHITECTURE.png)
 
-## 2. Component Breakdown
+## 3. Component Breakdown
 
-### 2.1. Frontend
+### 3.1. Frontend Layer
 
-*   **Framework:** Refine (React-based)
-*   **Styling:** Tailwind CSS with the Metronic theme.
-*   **Hosting:** Vercel
-*   **Structure:** The frontend will be a single-page application (SPA) with a modular component hierarchy. Key components include:
-    *   Dashboard
-    *   Subscription List
-    *   Subscription Detail View
-    *   Payment Method Management
-    *   Email Integration Setup
+*   **Framework:** **Refine (v3)** on **React (v18)**. Refine is chosen for its powerful data-fetching capabilities, routing, and state management abstractions, which accelerate development.
+*   **Styling:** **Tailwind CSS (v3)** with the **Metronic** theme. This provides a professional, consistent, and responsive UI out-of-the-box.
+*   **Hosting:** The frontend is a Single-Page Application (SPA) deployed and hosted on **Vercel**. Vercel provides a global CDN, automatic deployments, and seamless integration with our serverless backend.
+*   **Application Shells:** For Android and macOS, we will use thin native wrappers (e.g., Capacitor or a simple WebView) around the PWA to provide a native-like installation experience and access to native push notifications.
 
-### 2.2. Backend
+### 3.2. Backend & API Layer
 
-*   **API:** Serverless API routes hosted on Vercel.
-*   **Database:** Supabase Postgres with Row-Level Security (RLS) enabled for multi-tenancy.
-*   **Authentication:** Supabase Auth for user authentication and JWT-based session management.
-*   **Background Jobs:** Supabase Edge Functions for processing email trial detection and sending notifications.
+*   **API Gateway:** **Vercel Serverless Functions** act as our primary API gateway. These are Node.js functions that handle incoming requests, perform business logic, and interact with backend services.
+*   **Backend Platform:** **Supabase** serves as our core backend-as-a-service (BaaS) platform. It provides:
+    *   **Database:** A managed **PostgreSQL (v15)** database with Row-Level Security (RLS) enabled for strict multi-tenant data isolation.
+    *   **Authentication:** Supabase Auth for secure user authentication, social logins, and JWT-based session management.
+    *   **Background Jobs:** Supabase Edge Functions (Deno-based) are used for scheduled and event-driven background tasks, such as polling iCloud emails or sending reminder notifications.
+    *   **Storage:** Supabase Storage for securely storing any user-generated files (e.g., imported documents, avatars).
 
-## 3. Data Model
+## 4. Data Flow & Logic
 
-### 3.1. Entity-Relationship Diagram (ERD)
+### 4.1. User Authentication Flow
 
-```mermaid
-erDiagram
-    USERS ||--o{ WORKSPACES : has
-    WORKSPACES ||--o{ SUBSCRIPTIONS : has
-    WORKSPACES ||--o{ PAYMENT_METHODS : has
-    WORKSPACES ||--o{ EMAIL_ACCOUNTS : has
-    SUBSCRIPTIONS }|--|| PAYMENT_METHODS : uses
+1.  User signs up or logs in via the Refine frontend.
+2.  The frontend communicates with Supabase Auth to handle the authentication process.
+3.  Upon successful authentication, Supabase Auth issues a JWT.
+4.  The frontend stores the JWT and includes it in the `Authorization` header of all subsequent API requests to Vercel.
+5.  The Vercel API gateway validates the JWT with Supabase before processing the request.
 
-    USERS {
-        uuid id PK
-        string email
-        string full_name
-    }
+### 4.2. Email Trial Detection Flow
 
-    WORKSPACES {
-        uuid id PK
-        string name
-    }
+1.  **Connection:** User initiates an OAuth 2.0 flow from the frontend to connect their Gmail or Outlook account. For iCloud, they provide an app-specific password.
+2.  **Notification:**
+    *   **Gmail:** A Google Pub/Sub notification is sent to a Vercel webhook when a new email arrives.
+    *   **Outlook:** A Microsoft Graph webhook is triggered.
+    *   **iCloud:** A Supabase Edge Function polls the IMAP server periodically.
+3.  **Processing:** The Vercel webhook or Supabase Edge Function receives the event and fetches the minimal necessary email content (subject, sender, snippet).
+4.  **Parsing:** The content is passed to a dedicated parsing service (another serverless function) that uses NLP and pattern matching to identify trial information.
+5.  **Storage & Confirmation:** If a trial is detected, a `trial_pending` record is created in the Supabase database, and the user is notified to confirm the trial.
 
-    SUBSCRIPTIONS {
-        uuid id PK
-        uuid workspace_id FK
-        string name
-        string category
-        float cost
-        string billing_cycle
-        date renewal_date
-        boolean is_trial
-        date trial_end_date
-    }
+## 5. Technology Versions
 
-    PAYMENT_METHODS {
-        uuid id PK
-        uuid workspace_id FK
-        string nickname
-        string last4
-        string expiry_date
-        string issuer
-    }
+To ensure consistency and avoid conflicts, all development must adhere to the following technology versions:
 
-    EMAIL_ACCOUNTS {
-        uuid id PK
-        uuid workspace_id FK
-        string email
-        string provider
-        string access_token
-        string refresh_token
-    }
-```
+| Technology | Version |
+| :--- | :--- |
+| React | 18.2.0 |
+| Refine | 3.x |
+| Tailwind CSS | 3.3.x |
+| Node.js (Vercel) | 18.x |
+| PostgreSQL (Supabase) | 15.x |
+| Deno (Supabase Edge Functions) | 1.x |
 
-### 3.2. Table Schemas
+## 6. Rationale for Key Technology Choices
 
-*   **users:** Stores user account information.
-*   **workspaces:** Represents a shared environment for a user, family, or team.
-*   **subscriptions:** The core table for storing subscription data.
-*   **payment_methods:** Stores information about user payment methods.
-*   **email_accounts:** Securely stores credentials for connected email accounts.
-
-## 4. API Specification
-
-*   **Protocol:** RESTful API over HTTPS.
-*   **Authentication:** All endpoints will be protected and require a valid JWT token.
-*   **Endpoints:**
-    *   `/api/subscriptions`: CRUD operations for subscriptions.
-    *   `/api/payment-methods`: CRUD operations for payment methods.
-    *   `/api/email/connect`: Endpoint for initiating the OAuth flow for email integration.
-    *   `/api/email/webhook`: Webhook for receiving notifications from email providers.
-
-## 5. Email Trial Detection Subsystem
-
-*   **Gmail:** Utilizes the Gmail API with OAuth 2.0. A watch is set on the user's inbox, and notifications are sent to a Vercel webhook via Google Pub/Sub.
-*   **Outlook:** Leverages the Microsoft Graph API with OAuth 2.0. Change notifications are used to monitor the inbox for new emails.
-*   **iCloud:** A Supabase Edge Function will periodically poll the user's iCloud email via IMAP using an app-specific password.
-*   **Parsing Pipeline:** A dedicated service will be responsible for parsing email content to identify trial information. This service will use a combination of keyword matching and pattern recognition.
+*   **Refine:** Chosen over vanilla React or Next.js for its built-in data provider, routing, and auth integration, which significantly reduces boilerplate and accelerates development of this data-intensive application.
+*   **Supabase:** Chosen over a self-hosted Postgres or other BaaS solutions for its integrated auth, edge functions, and excellent RLS capabilities, which are critical for our multi-tenant security model.
+*   **Vercel:** Chosen for its seamless developer experience, tight integration with Next.js/React, and high-performance global edge network, which is ideal for our user-facing application.

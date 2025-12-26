@@ -28,17 +28,7 @@ This document provides detailed implementation guidance for the email-based tria
 
 ## 3. Implementation Architecture
 
-```mermaid
-graph TD
-    A[Email Provider] -->|New Email| B[Webhook/Polling]
-    B --> C[Email Parser Service]
-    C --> D{Trial Detected?}
-    D -->|Yes| E[Create Pending Trial]
-    D -->|No| F[Discard]
-    E --> G[Notify User]
-    G --> H[User Confirms]
-    H --> I[Create Active Trial]
-```
+![Email Trial Detection Flow](diagrams/EMAIL_TRIAL_DETECTION_FLOW.png)
 
 ## 4. Gmail Integration
 
